@@ -1,9 +1,9 @@
 import { initWebGL, createBuffer, createFloatTexture, createFramebuffer } from './webgl-setup.js';
 import { compileShader, createProgram } from './shader-utils.js';
 import { vertexShader } from './shaders/vertex.js';
-import { fragmentShader } from './shaders/fragment/fibonacci.js';
 import { fragmentVisualizeShader } from './shaders/visualize.js';
-import { renderFromLDZ } from './render-2d.js';
+import { fragmentShader } from './shaders/fragment/fibonacci.js';
+import { renderFromLDZ } from './npr/stippling.js';
 
 
 const width_cm = 20;
