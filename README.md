@@ -1,6 +1,6 @@
 # NPR based on WebGL
 
-This project is a playground for experimenting with non-photorealistic rendering (NPR) techniques in the browser, using WebGL and custom GLSL shaders.
+This project is a playground for experimenting with non-photorealistic rendering (NPR) techniques in the browser, using WebGL and custom GLSL shaders. You can view a static version of the playground [on GitHub Pages](https://a-johanson.github.io/npr-webgl-js/).
 
 ## Getting Started
 
