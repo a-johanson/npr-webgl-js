@@ -3,9 +3,9 @@ import { prng_xor4096 } from './lib/esm-seedrandom/xor4096.js';
 export function renderFromLDZ(ctx2d, ldzData, width, height, dpi) {
     const pixels_per_mm = dpi / 25.4;
 
-    const rDot = 0.25 * pixels_per_mm;
-    const rMin = 0.3 * pixels_per_mm;
-    const rMax = 1.5 * pixels_per_mm;
+    const rDot = 0.1 * pixels_per_mm;
+    const rMin = 1.2 * rDot;
+    const rMax = 5.0 * rDot;
     const gamma = 3.5;
     const cellSize = rMax;
     const maxAttempts = 30;
@@ -69,10 +69,10 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi) {
 
     // Draw points
     ctx2d.save();
+    ctx2d.fillStyle = '#222';
     for (const [x, y, z] of queue) {
         ctx2d.beginPath();
         ctx2d.arc(x, y, rDot, 0, 2 * Math.PI);
-        ctx2d.fillStyle = Math.floor(z*3) % 2 === 0 ? '#222' : '#f0f';
         ctx2d.fill();
     }
     ctx2d.restore();

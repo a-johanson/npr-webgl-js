@@ -6,24 +6,63 @@ precision highp float;
 in vec2 v_uv;
 out vec4 outLdz;
 
-uniform float u_aspect; // Added uniform for aspect ratio correction
+uniform float u_aspect; // Aspect ratio
 
 // SDF for a sphere
 float sdSphere(vec3 p, float r) {
     return length(p) - r;
 }
 
+// Cf. https://iquilezles.org/articles/smin/
+float smin(float a, float b, float k) {
+    k *= 6.0;
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+}
+
 float scene(vec3 p) {
-    const int N = 100;
-    float minDist = 1e5;
-    for (int i = 0; i < N; i++) {
-        float angle = float(i) * M_PI * (3.0 - sqrt(5.0)); // Golden angle in radians
-        float y = 1.0 - (float(i) / float(N - 1)) * 2.0; // y goes from 1 to -1
-        float r = sqrt(1.0 - y * y); // radius at y
+    const float N = 200.0; // Number of points on the Fibonacci sphere
+    const float GOLDEN_ANGLE = M_PI * (3.0 - sqrt(5.0));
+    const float OBJ_RADIUS = 0.25;
+
+    // Optimization: we only want to compute the distance to objects on the spiral points that are close to p.
+    // 1. Estimate the central index i from the y-coordinate of p.
+    vec3 p_norm = normalize(p);
+    float i_from_y = (1.0 - p_norm.y) * (N - 1.0) / 2.0; // <=> y = 1 - 2 * (i / (N - 1))
+    int i_approx = int(round(i_from_y));
+
+
+    // 2. Calculate a search range ("corridor") of indices on the spiral.
+
+    // To set a minimum search radius in terms of indices:
+    // The surface area around each point on the unit sphere scales ~1/N.
+    // Therefore, the radius around each point scales ~1/sqrt(N).
+    // Any fixed size search band across the unit sphere, scales ~N in terms of indices to cover.
+    // Therefore, to cover the radius around each point, we need to cover at least ~N/sqrt(N) = sqrt(N) indices.
+    int min_index_radius = int(ceil(sqrt(N)));
+
+    float y_dist_per_index = 2.0 / (N - 1.0);
+    int radius_from_obj = int(ceil(1.1 * OBJ_RADIUS / y_dist_per_index));
+    int index_radius = max(min_index_radius, radius_from_obj);
+
+
+    // 3. Iterate over neighboring indices.
+    int i_min = max(i_approx - index_radius, 0);
+    int i_max = min(i_approx + index_radius, int(N) - 1);
+
+    float fibSphere = 1.0e6;
+
+    // 4. Check only the spheres within the calculated index corridor.
+    for (int i = i_min; i <= i_max; i++) {
+        float y = 1.0 - (float(i) / (N - 1.0)) * 2.0;
+        float r = sqrt(1.0 - y * y);
+        float angle = float(i) * GOLDEN_ANGLE;
+
         vec3 spherePos = vec3(cos(angle) * r, y, sin(angle) * r);
-        minDist = min(minDist, sdSphere(p - spherePos, 0.25));
+        fibSphere = smin(fibSphere, sdSphere(p - spherePos, OBJ_RADIUS), 0.01 * OBJ_RADIUS);
     }
-    return minDist;
+
+    return max(-fibSphere, sdSphere(p, 1.0));
 }
 
 // Cf. https://iquilezles.org/articles/normalsSDF/
@@ -44,7 +83,7 @@ void main() {
     const vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
 
     // Camera setup
-    const vec3 camPos = vec3(0.0, 0.0, 5.0);
+    const vec3 camPos = vec3(0.0, 0.0, 3.0);
     const vec3 camTarget = vec3(0.0, 0.0, 0.0);
     const vec3 camUp = vec3(0.0, 1.0, 0.0);
 
@@ -53,7 +92,7 @@ void main() {
     const vec3 camRight = normalize(cross(camForward, camUp));
     const vec3 camTrueUp = cross(camRight, camForward);
 
-    const float fov = 40.0 * M_PI / 180.0;
+    const float fov = 35.0 * M_PI / 180.0;
     const float fov_scale = tan(0.5 * fov);
 
     vec3 rayDir = normalize(

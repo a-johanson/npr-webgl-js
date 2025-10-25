@@ -8,7 +8,7 @@ import { renderFromLDZ } from './render-2d.js';
 
 const width_cm = 20;
 const height_cm = 15;
-const dpi = 100;
+const dpi = 150;
 
 const aspectRatio = width_cm / height_cm;
 const dpcm = dpi / 2.54; // dots per cm
