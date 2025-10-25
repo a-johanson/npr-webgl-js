@@ -92,7 +92,8 @@ gl.readPixels(0, 0, width, height, gl.RGBA, gl.FLOAT, ldzData);
 renderDebugCanvas();
 
 
-ctx2d.clearRect(0, 0, width, height);
+ctx2d.fillStyle = '#fff';
+ctx2d.fillRect(0, 0, width, height);
 ctx2d.save();
 ctx2d.translate(0, height);
 ctx2d.scale(1, -1);
