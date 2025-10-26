@@ -96,7 +96,7 @@ float scene(vec3 p) {
     float fibSphere = 1.0e6;
 
     // 4. Check only the objects within the calculated index corridor.
-    const vec3 smoothingDir = -normalize(vec3(1.0, 2.0, 0.3));
+    const vec3 smoothingDir = -normalize(vec3(1.0, 2.0, 0.7));
     for (uint i = i_min; i <= i_max; i++) {
         float y = 1.0 - (float(i) / (N_f - 1.0)) * 2.0;
         float r = sqrt(1.0 - y * y);
