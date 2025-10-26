@@ -13,6 +13,48 @@ float sdSphere(vec3 p, float r) {
     return length(p) - r;
 }
 
+// Cf. https://www.shadertoy.com/view/XlGcRh and https://www.pcg-random.org/
+uint pcg(uint v) {
+	uint state = v * 747796405u + 2891336453u;
+	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	return (word >> 22u) ^ word;
+}
+
+float rand(uint seed) {
+    uint r = pcg(seed);
+    return float(r) / float(0xffffffffu);
+}
+
+vec3 rand3(uint seed, uint stride) {
+    return vec3(rand(seed), rand(seed + stride), rand(seed + 2u * stride));
+}
+
+// Cf. https://iquilezles.org/articles/distfunctions/
+float sdCube(vec3 p, float a) {
+  vec3 q = abs(p) - a;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+vec4 randomQuaternion(vec3 rand) {
+    float sqrt1 = sqrt(1.0 - rand.x);
+    float sqrt2 = sqrt(rand.x);
+    float theta1 = 2.0 * M_PI * rand.y;
+    float theta2 = 2.0 * M_PI * rand.z;
+
+    float x = sqrt1 * sin(theta1);
+    float y = sqrt1 * cos(theta1);
+    float z = sqrt2 * sin(theta2);
+    float w = sqrt2 * cos(theta2);
+
+    return vec4(x, y, z, w);
+}
+
+// Rotates vector p by quaternion q (q must be normalized)
+vec3 quatRotate(vec3 p, vec4 q) {
+    vec3 t = 2.0 * cross(q.xyz, p);
+    return p + q.w * t + cross(q.xyz, t);
+}
+
 // Cf. https://iquilezles.org/articles/smin/
 float smin(float a, float b, float k) {
     k *= 6.0;
@@ -21,14 +63,15 @@ float smin(float a, float b, float k) {
 }
 
 float scene(vec3 p) {
-    const float N = 200.0; // Number of points on the Fibonacci sphere
+    const uint N = 1000u; // Number of points on the Fibonacci sphere
+    const float N_f = float(N);
     const float GOLDEN_ANGLE = M_PI * (3.0 - sqrt(5.0));
-    const float OBJ_RADIUS = 0.25;
+    const float OBJ_RADIUS = 0.3;
 
     // Optimization: we only want to compute the distance to objects on the spiral points that are close to p.
     // 1. Estimate the central index i from the y-coordinate of p.
     vec3 p_norm = normalize(p);
-    float i_from_y = (1.0 - p_norm.y) * (N - 1.0) / 2.0; // <=> y = 1 - 2 * (i / (N - 1))
+    float i_from_y = (1.0 - p_norm.y) * (N_f - 1.0) / 2.0; // <=> y = 1 - 2 * (i / (N - 1))
     int i_approx = int(round(i_from_y));
 
 
@@ -39,30 +82,35 @@ float scene(vec3 p) {
     // Therefore, the radius around each point scales ~1/sqrt(N).
     // Any fixed size search band across the unit sphere, scales ~N in terms of indices to cover.
     // Therefore, to cover the radius around each point, we need to cover at least ~N/sqrt(N) = sqrt(N) indices.
-    int min_index_radius = int(ceil(sqrt(N)));
+    int min_index_radius = int(ceil(sqrt(N_f)));
 
-    float y_dist_per_index = 2.0 / (N - 1.0);
+    float y_dist_per_index = 2.0 / (N_f - 1.0);
     int radius_from_obj = int(ceil(1.1 * OBJ_RADIUS / y_dist_per_index));
     int index_radius = max(min_index_radius, radius_from_obj);
 
 
     // 3. Iterate over neighboring indices.
-    int i_min = max(i_approx - index_radius, 0);
-    int i_max = min(i_approx + index_radius, int(N) - 1);
+    uint i_min = uint(max(i_approx - index_radius, 0));
+    uint i_max = uint(min(i_approx + index_radius, int(N) - 1));
 
     float fibSphere = 1.0e6;
 
-    // 4. Check only the spheres within the calculated index corridor.
-    for (int i = i_min; i <= i_max; i++) {
-        float y = 1.0 - (float(i) / (N - 1.0)) * 2.0;
+    // 4. Check only the objects within the calculated index corridor.
+    for (uint i = i_min; i <= i_max; i++) {
+        float y = 1.0 - (float(i) / (N_f - 1.0)) * 2.0;
         float r = sqrt(1.0 - y * y);
         float angle = float(i) * GOLDEN_ANGLE;
 
-        vec3 spherePos = vec3(cos(angle) * r, y, sin(angle) * r);
-        fibSphere = smin(fibSphere, sdSphere(p - spherePos, OBJ_RADIUS), 0.01 * OBJ_RADIUS);
+        vec3 objPos = vec3(cos(angle) * r, y, sin(angle) * r);
+
+        vec4 q = randomQuaternion(rand3(i, N));
+        vec3 p_rot = quatRotate(p - objPos, q);
+        float scale = rand(i + 3u * N) * 0.7 + 0.5;
+        float cube = sdCube(p_rot, scale * OBJ_RADIUS);
+        fibSphere = smin(fibSphere, cube, 0.02 * OBJ_RADIUS);
     }
 
-    return max(-fibSphere, sdSphere(p, 1.0));
+    return fibSphere;
 }
 
 // Cf. https://iquilezles.org/articles/normalsSDF/
@@ -83,7 +131,7 @@ void main() {
     const vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
 
     // Camera setup
-    const vec3 camPos = vec3(0.0, 0.0, 3.0);
+    const vec3 camPos = vec3(0.0, 0.0, 5.0);
     const vec3 camTarget = vec3(0.0, 0.0, 0.0);
     const vec3 camUp = vec3(0.0, 1.0, 0.0);
 
@@ -92,7 +140,7 @@ void main() {
     const vec3 camRight = normalize(cross(camForward, camUp));
     const vec3 camTrueUp = cross(camRight, camForward);
 
-    const float fov = 35.0 * M_PI / 180.0;
+    const float fov = 40.0 * M_PI / 180.0;
     const float fov_scale = tan(0.5 * fov);
 
     vec3 rayDir = normalize(

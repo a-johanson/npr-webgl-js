@@ -7,7 +7,7 @@ import { renderFromLDZ } from './npr/stippling.js';
 
 
 const width_cm = 20;
-const height_cm = 15;
+const height_cm = 20;
 const dpi = 150;
 
 const aspectRatio = width_cm / height_cm;
