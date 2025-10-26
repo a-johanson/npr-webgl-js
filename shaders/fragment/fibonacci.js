@@ -85,7 +85,7 @@ float scene(vec3 p) {
     int min_index_radius = int(ceil(sqrt(N_f)));
 
     float y_dist_per_index = 2.0 / (N_f - 1.0);
-    int radius_from_obj = int(ceil(1.1 * OBJ_RADIUS / y_dist_per_index));
+    int radius_from_obj = int(ceil(1.85 * OBJ_RADIUS / y_dist_per_index));
     int index_radius = max(min_index_radius, radius_from_obj);
 
 
@@ -96,6 +96,7 @@ float scene(vec3 p) {
     float fibSphere = 1.0e6;
 
     // 4. Check only the objects within the calculated index corridor.
+    const vec3 smoothingDir = -normalize(vec3(1.0, 2.0, 0.3));
     for (uint i = i_min; i <= i_max; i++) {
         float y = 1.0 - (float(i) / (N_f - 1.0)) * 2.0;
         float r = sqrt(1.0 - y * y);
@@ -107,7 +108,8 @@ float scene(vec3 p) {
         vec3 p_rot = quatRotate(p - objPos, q);
         float scale = rand(i + 3u * N) * 0.7 + 0.5;
         float cube = sdCube(p_rot, scale * OBJ_RADIUS);
-        fibSphere = smin(fibSphere, cube, 0.02 * OBJ_RADIUS);
+        float smoothingRadius = 0.015 + 0.085 * smoothstep(-1.0, 1.0, dot(p, smoothingDir));
+        fibSphere = smin(fibSphere, cube, smoothingRadius * OBJ_RADIUS);
     }
 
     return fibSphere;
@@ -128,7 +130,7 @@ void main() {
     vec2 uv = v_uv * 2.0 - 1.0;
 
     // Light setup
-    const vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    const vec3 lightDir = normalize(vec3(1.0, 2.0, 1.25));
 
     // Camera setup
     const vec3 camPos = vec3(0.0, 0.0, 5.0);
