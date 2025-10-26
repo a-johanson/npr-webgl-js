@@ -2,9 +2,9 @@ import { prng_xor4096 } from '../lib/esm-seedrandom/xor4096.js';
 import { SpatialGrid } from './grid.js';
 
 export function renderFromLDZ(ctx2d, ldzData, width, height, dpi) {
-    const pixels_per_mm = dpi / 25.4;
+    const pixelsPerMm = dpi / 25.4;
 
-    const rDot = 0.1 * pixels_per_mm;
+    const rDot = 0.1 * pixelsPerMm;
     const rMin = 1.2 * rDot;
     const rMax = 5.0 * rDot;
     const gamma = 3.5;

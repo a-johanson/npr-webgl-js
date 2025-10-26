@@ -4,12 +4,12 @@ precision highp float;
 #define M_PI 3.14159265358979323846
 
 in vec2 v_uv;
-out vec4 outLdz;
+out vec4 out_ldz;
 
 uniform float u_aspect; // Aspect ratio
 
 // SDF for a sphere
-float sdSphere(vec3 p, float r) {
+float sd_sphere(vec3 p, float r) {
     return length(p) - r;
 }
 
@@ -30,12 +30,12 @@ vec3 rand3(uint seed, uint stride) {
 }
 
 // Cf. https://iquilezles.org/articles/distfunctions/
-float sdCube(vec3 p, float a) {
+float sd_cube(vec3 p, float a) {
   vec3 q = abs(p) - a;
   return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
-vec4 randomQuaternion(vec3 rand) {
+vec4 random_quaternion(vec3 rand) {
     float sqrt1 = sqrt(1.0 - rand.x);
     float sqrt2 = sqrt(rand.x);
     float theta1 = 2.0 * M_PI * rand.y;
@@ -50,7 +50,7 @@ vec4 randomQuaternion(vec3 rand) {
 }
 
 // Rotates vector p by quaternion q (q must be normalized)
-vec3 quatRotate(vec3 p, vec4 q) {
+vec3 quat_rotate(vec3 p, vec4 q) {
     vec3 t = 2.0 * cross(q.xyz, p);
     return p + q.w * t + cross(q.xyz, t);
 }
@@ -96,7 +96,7 @@ float scene(vec3 p) {
     float fibSphere = 1.0e6;
 
     // 4. Check only the objects within the calculated index corridor.
-    const vec3 smoothingDir = -normalize(vec3(1.0, 2.0, 0.7));
+    const vec3 smoothing_dir = -normalize(vec3(1.0, 2.0, 0.7));
     for (uint i = i_min; i <= i_max; i++) {
         float y = 1.0 - (float(i) / (N_f - 1.0)) * 2.0;
         float r = sqrt(1.0 - y * y);
@@ -104,12 +104,12 @@ float scene(vec3 p) {
 
         vec3 objPos = vec3(cos(angle) * r, y, sin(angle) * r);
 
-        vec4 q = randomQuaternion(rand3(i, N));
-        vec3 p_rot = quatRotate(p - objPos, q);
+        vec4 q = random_quaternion(rand3(i, N));
+        vec3 p_rot = quat_rotate(p - objPos, q);
         float scale = rand(i + 3u * N) * 0.7 + 0.5;
-        float cube = sdCube(p_rot, scale * OBJ_RADIUS);
-        float smoothingRadius = 0.015 + 0.085 * smoothstep(-1.0, 1.0, dot(p, smoothingDir));
-        fibSphere = smin(fibSphere, cube, smoothingRadius * OBJ_RADIUS);
+        float cube = sd_cube(p_rot, scale * OBJ_RADIUS);
+        float smoothing_radius = 0.015 + 0.085 * smoothstep(-1.0, 1.0, dot(p, smoothing_dir));
+        fibSphere = smin(fibSphere, cube, smoothing_radius * OBJ_RADIUS);
     }
 
     return fibSphere;
@@ -119,10 +119,10 @@ float scene(vec3 p) {
 vec3 calcNormal(vec3 p) {
     const float h = 0.001;
     const vec2 k = vec2(1, -1);
-    return normalize( k.xyy * scene(p + k.xyy * h) + 
-                      k.yyx * scene(p + k.yyx * h) + 
-                      k.yxy * scene(p + k.yxy * h) + 
-                      k.xxx * scene(p + k.xxx * h));
+    return normalize(k.xyy * scene(p + k.xyy * h) + 
+                     k.yyx * scene(p + k.yyx * h) + 
+                     k.yxy * scene(p + k.yxy * h) + 
+                     k.xxx * scene(p + k.xxx * h));
 }
 
 void main() {
@@ -130,77 +130,77 @@ void main() {
     vec2 uv = v_uv * 2.0 - 1.0;
 
     // Light setup
-    const vec3 lightDir = normalize(vec3(1.0, 2.0, 1.25));
+    const vec3 light_dir = normalize(vec3(1.0, 2.0, 1.25));
 
     // Camera setup
-    const vec3 camPos = vec3(0.0, 0.0, 5.0);
-    const vec3 camTarget = vec3(0.0, 0.0, 0.0);
-    const vec3 camUp = vec3(0.0, 1.0, 0.0);
+    const vec3 cam_pos = vec3(0.0, 0.0, 5.0);
+    const vec3 cam_target = vec3(0.0, 0.0, 0.0);
+    const vec3 cam_up = vec3(0.0, 1.0, 0.0);
 
     // Camera basis
-    const vec3 camForward = normalize(camTarget - camPos);
-    const vec3 camRight = normalize(cross(camForward, camUp));
-    const vec3 camTrueUp = cross(camRight, camForward);
+    const vec3 cam_forward = normalize(cam_target - cam_pos);
+    const vec3 cam_right = normalize(cross(cam_forward, cam_up));
+    const vec3 cam_true_up = cross(cam_right, cam_forward);
 
     const float fov = 40.0 * M_PI / 180.0;
     const float fov_scale = tan(0.5 * fov);
 
-    vec3 rayDir = normalize(
-        camRight * uv.x * u_aspect * fov_scale +
-        camTrueUp * uv.y * fov_scale +
-        camForward
+    vec3 ray_dir = normalize(
+        cam_right * uv.x * u_aspect * fov_scale +
+        cam_true_up * uv.y * fov_scale +
+        cam_forward
     );
-    
+
     // Ray marching
-    const float maxDist = 50.0;
-    const int maxSteps = 200;
+    const float max_dist = 50.0;
+    const int max_steps = 200;
     const float epsilon = 0.001;
-    const float orientationOffset = 0.5 * M_PI;
-    const float stepScale = 1.0;
+    const float orientation_offset = 0.5 * M_PI;
+    const float step_scale = 1.0;
 
     float luminance = 0.0;
-    vec2 surfaceDirection = vec2(0.0);
-    float zValue = -1.0;
+    vec2 surface_direction = vec2(0.0);
+    float z_value = -1.0;
 
     float t = 0.0;
-    vec4 hitPos = vec4(0.0, 0.0, 0.0, -1.0);
+    vec4 hit_pos = vec4(0.0, 0.0, 0.0, -1.0);
 
-    for (int i = 0; i < maxSteps; i++) {
-        vec3 p = camPos + rayDir * t;
+    for (int i = 0; i < max_steps; i++) {
+        vec3 p = cam_pos + ray_dir * t;
         float d = scene(p);
 
         if (d < epsilon) {
             vec3 normal = calcNormal(p);
-            vec3 pRelative = p - camPos;
-            
+            vec3 p_relative = p - cam_pos;
+
             // Simple lighting (luminance)
-            float normalAmount = dot(normal, lightDir);
-            luminance = max(0.0, normalAmount) * 0.8 + 0.2;
+            float normal_amount = dot(normal, light_dir);
+            luminance = max(0.0, normal_amount) * 0.8 + 0.2;
 
             // Compute surface orientation and project to image plane
-            vec3 a = normalize(lightDir - normalAmount * normal);
+            vec3 a = normalize(light_dir - normal_amount * normal);
             vec3 b = cross(normal, a);
-            vec3 abDir = cos(orientationOffset) * a + sin(orientationOffset) * b;
-            vec3 pPlus  = pRelative + epsilon * abDir;
-            vec3 pMinus = pRelative - epsilon * abDir;
+            vec3 ab_dir = cos(orientation_offset) * a + sin(orientation_offset) * b;
+            vec3 p_plus  = p_relative + epsilon * ab_dir;
+            vec3 p_minus = p_relative - epsilon * ab_dir;
 
-            vec2 pPlusClip = vec2(dot(pPlus, camRight), dot(pPlus, camTrueUp));
-            vec2 pMinusClip = vec2(dot(pMinus, camRight), dot(pMinus, camTrueUp));
+            vec2 p_plus_clip = vec2(dot(p_plus, cam_right), dot(p_plus, cam_true_up));
+            vec2 p_minus_clip = vec2(dot(p_minus, cam_right), dot(p_minus, cam_true_up));
 
-            surfaceDirection = normalize(pPlusClip - pMinusClip);
+            surface_direction = normalize(p_plus_clip - p_minus_clip);
 
-            zValue = dot(pRelative, camForward);
+            z_value = dot(p_relative, cam_forward);
 
-            hitPos = vec4(p, t);
+            hit_pos = vec4(p, t);
 
             break;
         }
 
-        if (t > maxDist) break;
+        if (t > max_dist) break;
 
-        t += stepScale * d;
+        t += step_scale * d;
     }
 
-    outLdz = vec4(luminance, surfaceDirection, zValue);
+    out_ldz = vec4(luminance, surface_direction, z_value);
 }
 `;

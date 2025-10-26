@@ -6,14 +6,14 @@ import { fragmentShader } from './shaders/fragment/fibonacci.js';
 import { renderFromLDZ } from './npr/stippling.js';
 
 
-const width_cm = 20;
-const height_cm = 20;
+const widthCm = 20;
+const heightCm = 20;
 const dpi = 150;
 
-const aspectRatio = width_cm / height_cm;
+const aspectRatio = widthCm / heightCm;
 const dpcm = dpi / 2.54; // dots per cm
-const width = Math.round(width_cm * dpcm);
-const height = Math.round(height_cm * dpcm);
+const width = Math.round(widthCm * dpcm);
+const height = Math.round(heightCm * dpcm);
 
 const debugWidth = width;
 const debugHeight = Math.round(debugWidth / aspectRatio);
