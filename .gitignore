@@ -1,3 +1,4 @@
 .DS_Store
+shaders/fragment/shatter.js
 shaders/fragment/terrain.js
 lib/chroma-js
