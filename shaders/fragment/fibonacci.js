@@ -71,7 +71,7 @@ float scene(vec3 p) {
     // Optimization: we only want to compute the distance to objects on the spiral points that are close to p.
     // 1. Estimate the central index i from the y-coordinate of p.
     vec3 p_norm = normalize(p);
-    float i_from_y = (1.0 - p_norm.y) * (N_f - 1.0) / 2.0; // <=> y = 1 - 2 * (i / (N - 1))
+    float i_from_y = ((1.0 - p_norm.y) * N_f * 0.5) - 0.5; // <=> y = 1 - 2 * ((i + 0.5) / N)
     int i_approx = int(round(i_from_y));
 
 
@@ -98,7 +98,7 @@ float scene(vec3 p) {
     // 4. Check only the objects within the calculated index corridor.
     const vec3 smoothing_dir = -normalize(vec3(1.0, 2.0, 0.7));
     for (uint i = i_min; i <= i_max; i++) {
-        float y = 1.0 - (float(i) / (N_f - 1.0)) * 2.0;
+    float y = 1.0 - ((float(i) + 0.5) / N_f) * 2.0;
         float r = sqrt(1.0 - y * y);
         float angle = float(i) * GOLDEN_ANGLE;
 
