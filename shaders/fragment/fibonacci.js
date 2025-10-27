@@ -116,7 +116,7 @@ float scene(vec3 p) {
 }
 
 // Cf. https://iquilezles.org/articles/normalsSDF/
-vec3 calcNormal(vec3 p) {
+vec3 calc_normal(vec3 p) {
     const float h = 0.001;
     const vec2 k = vec2(1, -1);
     return normalize(k.xyy * scene(p + k.xyy * h) + 
@@ -163,14 +163,13 @@ void main() {
     float z_value = -1.0;
 
     float t = 0.0;
-    vec4 hit_pos = vec4(0.0, 0.0, 0.0, -1.0);
 
     for (int i = 0; i < max_steps; i++) {
         vec3 p = cam_pos + ray_dir * t;
         float d = scene(p);
 
         if (d < epsilon) {
-            vec3 normal = calcNormal(p);
+            vec3 normal = calc_normal(p);
             vec3 p_relative = p - cam_pos;
 
             // Simple lighting (luminance)
@@ -190,8 +189,6 @@ void main() {
             surface_direction = normalize(p_plus_clip - p_minus_clip);
 
             z_value = dot(p_relative, cam_forward);
-
-            hit_pos = vec4(p, t);
 
             break;
         }
