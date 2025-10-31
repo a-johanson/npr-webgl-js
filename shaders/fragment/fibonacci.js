@@ -125,6 +125,59 @@ vec3 calc_normal(vec3 p) {
                      k.xxx * scene(p + k.xxx * h));
 }
 
+float calc_ambient_occlusion(vec3 p, vec3 normal) {
+    const int numSamples = 5;
+    const float maxDistance = 0.1;
+    float occlusion = 0.0;
+    float maxOcclusion = 0.0;
+    float weight = 1.0;
+    float stepSize = maxDistance / float(numSamples);
+    for (int i = 1; i <= numSamples; i++) {
+        float sampleDistance = stepSize * float(i);
+        vec3 samplePoint = p + normal * sampleDistance;
+        float distanceToSurface = scene(samplePoint);
+        // If geometry is close, increase occlusion
+        occlusion += (sampleDistance - distanceToSurface) * weight;
+        maxOcclusion += sampleDistance * weight;
+        weight *= 0.85;
+    }
+    // Normalize occlusion by theoretical maximum
+    float ao = 1.0 - clamp(occlusion / maxOcclusion, 0.0, 1.0);
+    return ao;
+}
+
+float calc_soft_shadow(vec3 p, vec3 light_dir) {
+    const float epsilon = 0.001;
+    const float step_scale = 1.0;
+    const float min_distance = 30.0 * epsilon;
+    const float max_distance = 10.0;
+    const int max_steps = 100;
+    const float penumbra = 16.0;
+
+    float shadow = 1.0;
+    float t = min_distance;
+    for (int i = 0; i < max_steps; i++) {
+        vec3 sample_point = p + light_dir * t;
+        float dist = scene(sample_point);
+        if (dist < epsilon) {
+            return 0.0; // Fully shadowed
+        }
+        shadow = min(shadow, penumbra * dist / t);
+        t += dist * step_scale;
+        if (t > max_distance) {
+            break;
+        }
+    }
+    return clamp(shadow, 0.0, 1.0);
+}
+
+float calc_fresnel(vec3 view_direction, vec3 normal) {
+    const float exponent = 3.0;
+    float cos_theta = clamp(dot(view_direction, normal), 0.0, 1.0);
+    float fresnel = pow(1.0 - cos_theta, exponent);
+    return fresnel;
+}
+
 void main() {
     // Ray setup
     vec2 uv = v_uv * 2.0 - 1.0;
@@ -174,7 +227,12 @@ void main() {
 
             // Simple lighting (luminance)
             float normal_amount = dot(normal, light_dir);
-            luminance = max(0.0, normal_amount) * 0.8 + 0.2;
+
+            float diffuse_light = max(0.0, normal_amount);
+            float shadow = calc_soft_shadow(p, light_dir);
+            float ao = calc_ambient_occlusion(p, normal);
+            float fresnel = calc_fresnel(-ray_dir, normal);
+            luminance = 0.8 * diffuse_light * shadow + 0.2 * ao + 0.05 * fresnel;
 
             // Compute surface orientation and project to image plane
             vec3 a = normalize(light_dir - normal_amount * normal);
