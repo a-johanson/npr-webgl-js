@@ -1,10 +1,7 @@
 // WebGL setup module
 // Handles canvas, context, extension checks, buffer/texture/framebuffer setup
 
-export function initWebGL(canvasId, width, height) {
-    const canvas = document.getElementById(canvasId);
-    canvas.width = width;
-    canvas.height = height;
+export function initWebGL(canvas) {
     const gl = canvas.getContext('webgl2');
     if (!gl) {
         throw new Error('WebGL2 not supported');
@@ -13,7 +10,7 @@ export function initWebGL(canvasId, width, height) {
     if (!ext) {
         throw new Error('EXT_color_buffer_float not supported. Cannot render to RGBA32F texture.');
     }
-    return { gl, canvas };
+    return gl;
 }
 
 export function createBuffer(gl, data) {

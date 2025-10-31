@@ -1,7 +1,7 @@
 import { prng_xor4096 } from '../lib/esm-seedrandom/xor4096.js';
 import { SpatialGrid } from './grid.js';
 
-export function renderFromLDZ(ctx2d, ldzData, width, height, dpi) {
+export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const pixelsPerMm = dpi / 25.4;
 
     const rDot = 0.1 * pixelsPerMm;
@@ -10,7 +10,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi) {
     const gamma = 3.5;
     const cellSize = rMax;
     const maxAttempts = 30;
-    let rng = prng_xor4096('52769ff2367023');
+    let rng = prng_xor4096(seed);
 
     // Helper to get luminance and z at (x, y)
     function luminanceAndZ(x, y) {

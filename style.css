@@ -13,3 +13,10 @@ canvas {
   margin: 20px auto;
   image-rendering: pixelated;
 }
+
+.controls {
+  display: block;
+  width: fit-content;
+  margin: 20px auto;
+  padding-bottom: 20px;
+}

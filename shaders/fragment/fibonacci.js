@@ -7,6 +7,7 @@ in vec2 v_uv;
 out vec4 out_ldz;
 
 uniform float u_aspect; // Aspect ratio
+uniform uint u_prng_seed; // PRNG seed
 
 // SDF for a sphere
 float sd_sphere(vec3 p, float r) {
@@ -21,7 +22,7 @@ uint pcg(uint v) {
 }
 
 float rand(uint seed) {
-    uint r = pcg(seed);
+    uint r = pcg(seed + u_prng_seed);
     return float(r) / float(0xffffffffu);
 }
 
