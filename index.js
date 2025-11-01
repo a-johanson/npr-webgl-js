@@ -6,7 +6,7 @@ import { NprRenderer } from './renderers/npr-renderer.js';
 const widthCm = 20;
 const heightCm = 20;
 const dpi = 150;
-const debugScale = 1.0;
+const maxDebugSize = 1024;
 const webglSeed = 0;
 const nprSeed = '52769ff2367023';
 // =============================
@@ -15,8 +15,12 @@ const nprSeed = '52769ff2367023';
 function computeDimensions(dpi) {
     const aspectRatio = widthCm / heightCm;
     const dpcm = dpi / 2.54;
+
     const width = Math.round(widthCm * dpcm);
     const height = Math.round(heightCm * dpcm);
+
+    const longestSide = Math.max(width, height);
+    const debugScale = longestSide > maxDebugSize ? maxDebugSize / longestSide : 1.0;
     const debugWidth = debugScale * width;
     const debugHeight = Math.round(debugWidth / aspectRatio);
 
@@ -30,7 +34,8 @@ const stateManager = new StateManager({
     dpi,
     dimensions: computeDimensions(dpi),
     visualizationMode: 0,
-    nprIsDirty: false
+    nprIsDirty: false,
+    isRendering: false
 });
 
 const webglRenderer = new WebGLRenderer('debugCanvas', stateManager);
@@ -40,36 +45,52 @@ const dpiInput = document.getElementById('dpi');
 const webglSeedInput = document.getElementById('webglSeed');
 const nprSeedInput = document.getElementById('nprSeed');
 
+const applyDpiButton = document.getElementById('applyDpi');
+const applyWebGLSeedButton = document.getElementById('applyWebGLSeed');
+const randomizeWebGLSeedButton = document.getElementById('randomizeWebGLSeed');
+const applyNprSeedButton = document.getElementById('applyNprSeed');
+
+stateManager.subscribe(['isRendering'], () => {
+    const isRendering = stateManager.get('isRendering');
+    applyDpiButton.disabled = isRendering;
+    applyWebGLSeedButton.disabled = isRendering;
+    randomizeWebGLSeedButton.disabled = isRendering;
+    applyNprSeedButton.disabled = isRendering;
+});
+
 dpiInput.value = String(stateManager.get('dpi'));
 webglSeedInput.value = String(stateManager.get('webglSeed'));
 nprSeedInput.value = stateManager.get('nprSeed');
 
-document.getElementById('applyDpi').addEventListener('click', () => {
+applyDpiButton.addEventListener('click', async () => {
     const newDpi = parseInt(dpiInput.value) || dpi;
-    stateManager.setState({
+    await stateManager.setState({
         dpi: newDpi,
         dimensions: computeDimensions(newDpi)
     });
 });
 
-document.getElementById('randomizeWebGLSeed').addEventListener('click', () => {
+randomizeWebGLSeedButton.addEventListener('click', async () => {
     const randomSeed = Math.floor(Math.random() * 0x100000000);
     webglSeedInput.value = String(randomSeed);
     console.log('Random WebGL seed:', randomSeed);
-    stateManager.setState({ webglSeed: randomSeed, nprIsDirty: true });
+    await stateManager.setState({ webglSeed: randomSeed, nprIsDirty: true });
 });
 
-document.getElementById('applyWebGLSeed').addEventListener('click', () => {
+applyWebGLSeedButton.addEventListener('click', async () => {
     const parsedInt = parseInt(webglSeedInput.value);
     const newSeed = Number.isNaN(parsedInt) ? webglSeed : parsedInt;
-    stateManager.setState({ webglSeed: newSeed, nprIsDirty: true });
+    await stateManager.setState({ webglSeed: newSeed, nprIsDirty: true });
 });
 
-document.getElementById('applyNprSeed').addEventListener('click', () => {
+applyNprSeedButton.addEventListener('click', async () => {
     const newSeed = nprSeedInput.value || nprSeed;
-    stateManager.setState({ nprSeed: newSeed });
+    await stateManager.setState({ nprSeed: newSeed });
     if (stateManager.get('nprIsDirty')) {
-        stateManager.setState({ nprIsDirty: false });
-        nprRenderer.render();
+        await stateManager.setState({ nprIsDirty: false });
+        await nprRenderer.render();
     }
 });
+
+await webglRenderer.renderLdzTiled();
+await nprRenderer.render();

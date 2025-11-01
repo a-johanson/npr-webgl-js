@@ -11,18 +11,14 @@ export class NprRenderer {
 
         this.adaptToDimensions();
 
-        this.stateManager.subscribe(['nprSeed'], () => {
-            this.stateManager.setState({ nprIsDirty: false });
-            this.render();
+        this.stateManager.subscribe(['nprSeed'], async () => {
+            await this.render();
         });
 
-        this.stateManager.subscribe(['dimensions'], () => {
-            this.stateManager.setState({ nprIsDirty: false });
+        this.stateManager.subscribe(['dimensions'], async () => {
             this.adaptToDimensions();
-            this.render();
+            await this.render();
         });
-
-        this.render();
     }
 
     adaptToDimensions() {
@@ -35,18 +31,23 @@ export class NprRenderer {
         this.canvas.height = height;
     }
 
-    render() {
-        const seed = this.stateManager.get('nprSeed');
-        const dpi = this.stateManager.get('dpi');
-        const ldzData = this.webglRenderer.getLdzData();
+    async render() {
+        await this.stateManager.setState({ isRendering: true });
 
-        this.ctx.fillStyle = '#fff';
-        this.ctx.fillRect(0, 0, this.width, this.height);
+        try {
+            const seed = this.stateManager.get('nprSeed');
+            const dpi = this.stateManager.get('dpi');
+            const ldzData = this.webglRenderer.getLdzData();
 
-        this.ctx.save();
-        this.ctx.translate(0, this.height);
-        this.ctx.scale(1, -1);
-        renderFromLDZ(this.ctx, ldzData, this.width, this.height, dpi, seed);
-        this.ctx.restore();
+            this.ctx.save();
+            this.ctx.translate(0, this.height);
+            this.ctx.scale(1, -1);
+            renderFromLDZ(this.ctx, ldzData, this.width, this.height, dpi, seed);
+            this.ctx.restore();
+
+            await this.stateManager.setState({ nprIsDirty: false });
+        } finally {
+            await this.stateManager.setState({ isRendering: false });
+        }
     }
 }

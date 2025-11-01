@@ -3,7 +3,7 @@
 export class StateManager {
     constructor(initialState = {}) {
         this._state = { ...initialState };
-        this._subscribers = new Map(); // Map<propertyName, Set<callback>>
+        this._subscribers = new Map(); // Map<propertyName, Array<callback>>
     }
 
     get(key) {
@@ -14,7 +14,7 @@ export class StateManager {
      * Update state and notify affected subscribers
      * @param {Object} updates - Object with properties to update
      */
-    setState(updates) {
+    async setState(updates) {
         const changedKeys = [];
 
         for (const [key, value] of Object.entries(updates)) {
@@ -24,13 +24,13 @@ export class StateManager {
             }
         }
 
-        changedKeys.forEach(key => {
+        for (const key of changedKeys) {
             if (this._subscribers.has(key)) {
-                this._subscribers.get(key).forEach(callback => {
-                    callback(this._state[key], this._state);
-                });
+                for (const callback of this._subscribers.get(key)) {
+                    await callback(this._state[key], this._state);
+                }
             }
-        });
+        }
 
         return changedKeys;
     }
@@ -43,9 +43,9 @@ export class StateManager {
     subscribe(keys, callback) {
         keys.forEach(key => {
             if (!this._subscribers.has(key)) {
-                this._subscribers.set(key, new Set());
+                this._subscribers.set(key, []);
             }
-            this._subscribers.get(key).add(callback);
+            this._subscribers.get(key).push(callback);
         });
     }
 }

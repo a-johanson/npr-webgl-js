@@ -4,7 +4,7 @@ import { SpatialGrid } from './grid.js';
 export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const pixelsPerMm = dpi / 25.4;
 
-    const rDot = 0.1 * pixelsPerMm;
+    const rDot = 0.2 * pixelsPerMm;
     const rMin = 1.1 * rDot;
     const rMax = 5.1 * rDot;
     const gamma = 2.2;
@@ -67,6 +67,9 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
             }
         }
     }
+
+    ctx2d.fillStyle = '#fff';
+    ctx2d.fillRect(0, 0, width, height);
 
     // Draw points
     ctx2d.save();
