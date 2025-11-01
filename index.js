@@ -29,7 +29,8 @@ const stateManager = new StateManager({
     nprSeed,
     dpi,
     dimensions: computeDimensions(dpi),
-    visualizationMode: 0
+    visualizationMode: 0,
+    nprIsDirty: false
 });
 
 const webglRenderer = new WebGLRenderer('debugCanvas', stateManager);
@@ -43,7 +44,7 @@ dpiInput.value = String(stateManager.get('dpi'));
 webglSeedInput.value = String(stateManager.get('webglSeed'));
 nprSeedInput.value = stateManager.get('nprSeed');
 
-document.getElementById('setDpi').addEventListener('click', () => {
+document.getElementById('applyDpi').addEventListener('click', () => {
     const newDpi = parseInt(dpiInput.value) || dpi;
     stateManager.setState({
         dpi: newDpi,
@@ -51,13 +52,24 @@ document.getElementById('setDpi').addEventListener('click', () => {
     });
 });
 
-document.getElementById('refreshWebGl').addEventListener('click', () => {
-    const parsedInt = parseInt(webglSeedInput.value);
-    const newSeed = Number.isNaN(parsedInt) ? webglSeed : parsedInt;
-    stateManager.setState({ webglSeed: newSeed });
+document.getElementById('randomizeWebGLSeed').addEventListener('click', () => {
+    const randomSeed = Math.floor(Math.random() * 0x100000000);
+    webglSeedInput.value = String(randomSeed);
+    console.log('Random WebGL seed:', randomSeed);
+    stateManager.setState({ webglSeed: randomSeed, nprIsDirty: true });
 });
 
-document.getElementById('refreshNpr').addEventListener('click', () => {
+document.getElementById('applyWebGLSeed').addEventListener('click', () => {
+    const parsedInt = parseInt(webglSeedInput.value);
+    const newSeed = Number.isNaN(parsedInt) ? webglSeed : parsedInt;
+    stateManager.setState({ webglSeed: newSeed, nprIsDirty: true });
+});
+
+document.getElementById('applyNprSeed').addEventListener('click', () => {
     const newSeed = nprSeedInput.value || nprSeed;
     stateManager.setState({ nprSeed: newSeed });
+    if (stateManager.get('nprIsDirty')) {
+        stateManager.setState({ nprIsDirty: false });
+        nprRenderer.render();
+    }
 });

@@ -12,10 +12,12 @@ export class NprRenderer {
         this.adaptToDimensions();
 
         this.stateManager.subscribe(['nprSeed'], () => {
+            this.stateManager.setState({ nprIsDirty: false });
             this.render();
         });
 
         this.stateManager.subscribe(['dimensions'], () => {
+            this.stateManager.setState({ nprIsDirty: false });
             this.adaptToDimensions();
             this.render();
         });
