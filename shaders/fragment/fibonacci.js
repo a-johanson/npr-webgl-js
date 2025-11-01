@@ -151,7 +151,7 @@ float calc_soft_shadow(vec3 p, vec3 light_dir) {
     const float epsilon = 0.001;
     const float step_scale = 1.0;
     const float min_distance = 30.0 * epsilon;
-    const float max_distance = 10.0;
+    const float max_distance = 2.0;
     const int max_steps = 100;
     const float penumbra = 16.0;
 

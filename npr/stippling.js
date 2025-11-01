@@ -5,9 +5,9 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const pixelsPerMm = dpi / 25.4;
 
     const rDot = 0.1 * pixelsPerMm;
-    const rMin = 1.2 * rDot;
-    const rMax = 5.0 * rDot;
-    const gamma = 3.5;
+    const rMin = 1.1 * rDot;
+    const rMax = 5.1 * rDot;
+    const gamma = 2.2;
     const cellSize = rMax;
     const maxAttempts = 30;
     let rng = prng_xor4096(seed);
@@ -22,7 +22,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
 
     // Helper to get disk radius for luminance
     function radius(luminance) {
-        return rMin + (rMax - rMin) * Math.pow(luminance, 0.5 * gamma);
+        return rMin + (rMax - rMin) * Math.pow(luminance, gamma);
     }
 
     // Stochastic stippling using Poisson-disk sampling and a spatial grid structure to accelerate proximity queries
