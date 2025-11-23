@@ -14,46 +14,8 @@ float sd_sphere(vec3 p, float r) {
     return length(p) - r;
 }
 
-// Cf. https://www.shadertoy.com/view/XlGcRh and https://www.pcg-random.org/
-uint pcg(uint v) {
-	uint state = v * 747796405u + 2891336453u;
-	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-	return (word >> 22u) ^ word;
-}
-
-float rand(uint seed) {
-    uint r = pcg(seed + u_prng_seed);
-    return float(r) / float(0xffffffffu);
-}
-
-vec3 rand3(uint seed, uint stride) {
-    return vec3(rand(seed), rand(seed + stride), rand(seed + 2u * stride));
-}
-
-// Cf. https://iquilezles.org/articles/distfunctions/
-float sd_cube(vec3 p, float a) {
-  vec3 q = abs(p) - a;
-  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-}
-
-vec4 random_quaternion(vec3 rand) {
-    float sqrt1 = sqrt(1.0 - rand.x);
-    float sqrt2 = sqrt(rand.x);
-    float theta1 = 2.0 * M_PI * rand.y;
-    float theta2 = 2.0 * M_PI * rand.z;
-
-    float x = sqrt1 * sin(theta1);
-    float y = sqrt1 * cos(theta1);
-    float z = sqrt2 * sin(theta2);
-    float w = sqrt2 * cos(theta2);
-
-    return vec4(x, y, z, w);
-}
-
-// Rotates vector p by quaternion q (q must be normalized)
-vec3 quat_rotate(vec3 p, vec4 q) {
-    vec3 t = 2.0 * cross(q.xyz, p);
-    return p + q.w * t + cross(q.xyz, t);
+float sd_plane(vec3 p, vec3 n, float h) {
+    return dot(p, n) - h;
 }
 
 // Cf. https://iquilezles.org/articles/smin/
@@ -63,11 +25,15 @@ float smin(float a, float b, float k) {
     return min(a, b) - h * h * h * k * (1.0 / 6.0);
 }
 
+float smax(float a, float b, float k) {
+    return -smin(-a, -b, k);
+}
+
 float scene(vec3 p) {
-    const uint N = 1000u; // Number of points on the Fibonacci sphere
+    const uint N = 70u; // Number of points on the Fibonacci sphere
     const float N_f = float(N);
     const float GOLDEN_ANGLE = M_PI * (3.0 - sqrt(5.0));
-    const float OBJ_RADIUS = 0.3;
+    const float OBJ_RADIUS = 0.39;
 
     // Optimization: we only want to compute the distance to objects on the spiral points that are close to p.
     // 1. Estimate the central index i from the y-coordinate of p.
@@ -86,7 +52,7 @@ float scene(vec3 p) {
     int min_index_radius = int(ceil(sqrt(N_f)));
 
     float y_dist_per_index = 2.0 / (N_f - 1.0);
-    int radius_from_obj = int(ceil(1.85 * OBJ_RADIUS / y_dist_per_index));
+    int radius_from_obj = int(ceil(1.05 * OBJ_RADIUS / y_dist_per_index));
     int index_radius = max(min_index_radius, radius_from_obj);
 
 
@@ -97,7 +63,6 @@ float scene(vec3 p) {
     float fib_sphere = 1.0e6;
 
     // 4. Check only the objects within the calculated index corridor.
-    const vec3 smoothing_dir = -normalize(vec3(1.0, 2.0, 0.7));
     for (uint i = i_min; i <= i_max; i++) {
     float y = 1.0 - ((float(i) + 0.5) / N_f) * 2.0;
         float r = sqrt(1.0 - y * y);
@@ -105,15 +70,15 @@ float scene(vec3 p) {
 
         vec3 objPos = vec3(cos(angle) * r, y, sin(angle) * r);
 
-        vec4 q = random_quaternion(rand3(i, N));
-        vec3 p_rot = quat_rotate(p - objPos, q);
-        float scale = rand(i + 3u * N) * 0.7 + 0.5;
-        float cube = sd_cube(p_rot, scale * OBJ_RADIUS);
-        float smoothing_radius = 0.015 + 0.085 * smoothstep(-1.0, 1.0, dot(p, smoothing_dir));
-        fib_sphere = smin(fib_sphere, cube, smoothing_radius * OBJ_RADIUS);
+        float sphere = sd_sphere(p - objPos, OBJ_RADIUS);
+        fib_sphere = smin(fib_sphere, sphere, 0.0035);
     }
 
-    return fib_sphere;
+    float onion_sphere = abs(min(fib_sphere, sd_sphere(p, 1.1))) - 0.05;
+    float half_space = sd_plane(p, normalize(vec3(-0.5, 1.0, 1.0)), 0.28);
+    float cut_sphere = smax(onion_sphere, half_space, 0.0075);
+
+    return cut_sphere;
 }
 
 // Cf. https://iquilezles.org/articles/normalsSDF/
@@ -149,11 +114,11 @@ float calc_ambient_occlusion(vec3 p, vec3 normal) {
 
 float calc_soft_shadow(vec3 p, vec3 light_dir) {
     const float epsilon = 0.001;
-    const float step_scale = 1.0;
-    const float min_distance = 30.0 * epsilon;
+    const float step_scale = 0.2;
+    const float min_distance = 20.0 * epsilon;
     const float max_distance = 2.0;
-    const int max_steps = 100;
-    const float penumbra = 16.0;
+    const int max_steps = 400;
+    const float penumbra = 10.0;
 
     float shadow = 1.0;
     float t = min_distance;
@@ -184,11 +149,11 @@ void main() {
     vec2 uv = v_uv * 2.0 - 1.0;
 
     // Light setup
-    const vec3 light_dir = normalize(vec3(1.0, 2.0, 1.25));
+    const vec3 light_dir = normalize(vec3(0.5, 2.0, 3.25));
 
     // Camera setup
     const vec3 cam_pos = vec3(0.0, 0.0, 5.0);
-    const vec3 cam_target = vec3(0.0, 0.0, 0.0);
+    const vec3 cam_target = vec3(0.01, -0.1, 0.0);
     const vec3 cam_up = vec3(0.0, 1.0, 0.0);
 
     // Camera basis
@@ -196,7 +161,7 @@ void main() {
     const vec3 cam_right = normalize(cross(cam_forward, cam_up));
     const vec3 cam_true_up = cross(cam_right, cam_forward);
 
-    const float fov = 40.0 * M_PI / 180.0;
+    const float fov = 37.0 * M_PI / 180.0;
     const float fov_scale = tan(0.5 * fov);
 
     vec3 ray_dir = normalize(
@@ -233,6 +198,7 @@ void main() {
             float shadow = calc_soft_shadow(p, light_dir);
             float ao = calc_ambient_occlusion(p, normal);
             float fresnel = calc_fresnel(-ray_dir, normal);
+            //luminance = 0.8 * diffuse_light * shadow + 0.2 * ao + 0.05 * fresnel;
             luminance = 0.8 * diffuse_light * shadow + 0.2 * ao + 0.05 * fresnel;
 
             // Compute surface orientation and project to image plane
