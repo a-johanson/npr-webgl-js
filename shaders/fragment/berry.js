@@ -81,6 +81,10 @@ float scene(vec3 p) {
     return cut_sphere;
 }
 
+float scene_ground(vec3 p) {
+    return p.y + 1.0 + 0.5*0.39 + 0.2;
+}
+
 // Cf. https://iquilezles.org/articles/normalsSDF/
 vec3 calc_normal(vec3 p) {
     const float h = 0.001;
@@ -91,9 +95,7 @@ vec3 calc_normal(vec3 p) {
                      k.xxx * scene(p + k.xxx * h));
 }
 
-float calc_ambient_occlusion(vec3 p, vec3 normal) {
-    const int numSamples = 5;
-    const float maxDistance = 0.1;
+float calc_ambient_occlusion(vec3 p, vec3 normal, float maxDistance, int numSamples) {
     float occlusion = 0.0;
     float maxOcclusion = 0.0;
     float weight = 1.0;
@@ -116,7 +118,7 @@ float calc_soft_shadow(vec3 p, vec3 light_dir) {
     const float epsilon = 0.001;
     const float step_scale = 0.2;
     const float min_distance = 20.0 * epsilon;
-    const float max_distance = 2.0;
+    const float max_distance = 2.5;
     const int max_steps = 400;
     const float penumbra = 10.0;
 
@@ -126,13 +128,13 @@ float calc_soft_shadow(vec3 p, vec3 light_dir) {
         vec3 sample_point = p + light_dir * t;
         float dist = scene(sample_point);
         if (dist < epsilon) {
-            return 0.0; // Fully shadowed
+            return 0.0; // Fully shaded
         }
         shadow = min(shadow, penumbra * dist / t);
-        t += dist * step_scale;
         if (t > max_distance) {
             break;
         }
+        t += dist * step_scale;
     }
     return clamp(shadow, 0.0, 1.0);
 }
@@ -185,9 +187,10 @@ void main() {
 
     for (int i = 0; i < max_steps; i++) {
         vec3 p = cam_pos + ray_dir * t;
-        float d = scene(p);
+        float d_scene = scene(p);
+        float d_ground = scene_ground(p);
 
-        if (d < epsilon) {
+        if (d_scene < epsilon) {
             vec3 normal = calc_normal(p);
             vec3 p_relative = p - cam_pos;
 
@@ -196,9 +199,8 @@ void main() {
 
             float diffuse_light = max(0.0, normal_amount);
             float shadow = calc_soft_shadow(p, light_dir);
-            float ao = calc_ambient_occlusion(p, normal);
+            float ao = calc_ambient_occlusion(p, normal, 0.1, 5);
             float fresnel = calc_fresnel(-ray_dir, normal);
-            //luminance = 0.8 * diffuse_light * shadow + 0.2 * ao + 0.05 * fresnel;
             luminance = 0.8 * diffuse_light * shadow + 0.2 * ao + 0.05 * fresnel;
 
             // Compute surface orientation and project to image plane
@@ -218,9 +220,19 @@ void main() {
             break;
         }
 
+        if (d_ground < epsilon) {
+            float shadow = calc_ambient_occlusion(p, vec3(0.0, 1.0, 0.0), 0.22, 8);
+            if (shadow < 1.0) {
+                luminance = shadow;
+                surface_direction = vec2(1.0, 0.0);
+                z_value = dot(p - cam_pos, cam_forward);
+            }
+            break;
+        }
+
         if (t > max_dist) break;
 
-        t += step_scale * d;
+        t += step_scale * min(d_scene, d_ground);
     }
 
     out_ldz = vec4(luminance, surface_direction, z_value);

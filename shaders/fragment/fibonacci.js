@@ -161,7 +161,7 @@ float calc_soft_shadow(vec3 p, vec3 light_dir) {
         vec3 sample_point = p + light_dir * t;
         float dist = scene(sample_point);
         if (dist < epsilon) {
-            return 0.0; // Fully shadowed
+            return 0.0; // Fully shaded
         }
         shadow = min(shadow, penumbra * dist / t);
         t += dist * step_scale;
