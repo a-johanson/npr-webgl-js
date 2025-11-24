@@ -82,7 +82,7 @@ float scene(vec3 p) {
 }
 
 float scene_ground(vec3 p) {
-    return p.y + 1.0 + 0.5*0.39 + 0.2;
+    return p.y + 1.0 + 0.5*0.39 + 0.15;
 }
 
 // Cf. https://iquilezles.org/articles/normalsSDF/
@@ -107,7 +107,7 @@ float calc_ambient_occlusion(vec3 p, vec3 normal, float maxDistance, int numSamp
         // If geometry is close, increase occlusion
         occlusion += (sampleDistance - distanceToSurface) * weight;
         maxOcclusion += sampleDistance * weight;
-        weight *= 0.85;
+        weight *= 0.95;
     }
     // Normalize occlusion by theoretical maximum
     float ao = 1.0 - clamp(occlusion / maxOcclusion, 0.0, 1.0);
@@ -221,9 +221,10 @@ void main() {
         }
 
         if (d_ground < epsilon) {
-            float shadow = calc_ambient_occlusion(p, vec3(0.0, 1.0, 0.0), 0.22, 8);
+            float shadow = calc_ambient_occlusion(p, vec3(0.0, 1.0, 0.0), 0.2, 8);
             if (shadow < 1.0) {
-                luminance = shadow;
+                const float shadow_strength = 0.8;
+                luminance = shadow_strength * shadow + (1.0 - shadow_strength);
                 surface_direction = vec2(1.0, 0.0);
                 z_value = dot(p - cam_pos, cam_forward);
             }
