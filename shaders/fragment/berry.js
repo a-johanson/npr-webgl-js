@@ -155,7 +155,7 @@ void main() {
 
     // Camera setup
     const vec3 cam_pos = vec3(0.0, 0.0, 5.0);
-    const vec3 cam_target = vec3(0.01, -0.1, 0.0);
+    const vec3 cam_target = vec3(0.025, -0.1, 0.0);
     const vec3 cam_up = vec3(0.0, 1.0, 0.0);
 
     // Camera basis
@@ -221,9 +221,9 @@ void main() {
         }
 
         if (d_ground < epsilon) {
-            float shadow = calc_ambient_occlusion(p, vec3(0.0, 1.0, 0.0), 0.2, 8);
+            float shadow = calc_ambient_occlusion(p, light_dir, 0.2, 8);
             if (shadow < 1.0) {
-                const float shadow_strength = 0.8;
+                const float shadow_strength = 1.0;
                 luminance = shadow_strength * shadow + (1.0 - shadow_strength);
                 surface_direction = vec2(1.0, 0.0);
                 z_value = dot(p - cam_pos, cam_forward);
