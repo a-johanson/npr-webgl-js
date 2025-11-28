@@ -9,10 +9,6 @@ out vec4 out_ldz;
 uniform float u_aspect; // Aspect ratio
 uniform uint u_prng_seed; // PRNG seed
 
-// SDF for a sphere
-float sd_sphere(vec3 p, float r) {
-    return length(p) - r;
-}
 
 // Cf. https://www.shadertoy.com/view/XlGcRh and https://www.pcg-random.org/
 uint pcg(uint v) {
