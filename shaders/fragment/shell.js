@@ -173,9 +173,9 @@ void main() {
     );
 
     // Ray marching
-    const float max_dist = 50.0;
-    const int max_steps = 200;
-    const float epsilon = 0.001;
+    const float max_dist = 10.0;
+    const int max_steps = 500;
+    const float epsilon = 0.0001;
     const float orientation_offset = 0.5 * M_PI;
     const float step_scale = 1.0;
 

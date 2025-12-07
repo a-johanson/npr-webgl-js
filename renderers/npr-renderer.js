@@ -1,4 +1,4 @@
-import { renderFromLDZ } from '../npr/stippling.js';
+import { renderFromLDZ } from '../npr/streamlines.js';
 
 
 export class NprRenderer {
