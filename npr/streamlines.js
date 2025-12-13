@@ -1,7 +1,8 @@
 import { prng_xor4096 } from '../lib/esm-seedrandom/xor4096.js';
 import { SpatialGrid } from './grid.js';
 import { outlinesFromLDZ } from './outlines.js';
-import { drawPolyline } from './polyline.js';
+import { drawPolyline, visvalingamWhyatt } from './polyline.js';
+import { linearToOklab, oklabToLinear, srgbToLinear, linearToSrgb } from './color.js';
 
 
 function dSepFromLuminance(dSepMax, dSepShadowFactor, gammaLuminance, luminance) {
@@ -167,27 +168,56 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const pixelsPerMm = dpi / 25.4;
 
     const config = {
-        dSepMax: 0.8 * pixelsPerMm,
-        dSepShadowFactor: 0.5,
-        gammaLuminance: 1.5,
+        dSepMax: 0.9 * pixelsPerMm,
+        dSepShadowFactor: 0.1,
+        gammaLuminance: 2.5,
         dTestFactor: 1.1,
-        dStep: 0.4 * pixelsPerMm,
+        dStep: 0.05 * pixelsPerMm,
         maxDepthStep: 0.02,
         maxAccumAngle: Math.PI * 0.6,
-        maxHatchedLuminance: 2.0,
-        maxSteps: 150,
+        maxHatchedLuminance: 1.9,
+        maxSteps: 750,
         minSteps: 10
     };
 
-    const streamlines = flowFieldStreamlines(ldzData, width, height, seed, config);
+    let streamlines = flowFieldStreamlines(ldzData, width, height, seed, config);
+    streamlines = streamlines.map(line => visvalingamWhyatt(line, 0.25));
     const outlines = outlinesFromLDZ(ldzData, width, height, 0.7, 0.3, 25, 0.25);
 
-    ctx2d.fillStyle = '#fff';
-    ctx2d.fillRect(0, 0, width, height);
-    ctx2d.strokeStyle = '#222';
-    ctx2d.lineWidth = 0.2 * pixelsPerMm;
+    // ctx2d.fillStyle = '#fff';
+    // ctx2d.fillRect(0, 0, width, height);
+    ctx2d.strokeStyle = '#111';
+    ctx2d.lineWidth = 0.06 * pixelsPerMm;
     ctx2d.lineCap = 'round';
     ctx2d.lineJoin = 'round';
+
+    function mix(a, b, t) {
+        t = Math.min(Math.max(t, 0.0), 1.0);
+        return a.map((av, i) => av * (1.0 - t) + b[i] * t);
+    }
+    const labBg1 = linearToOklab(srgbToLinear([0.35, 0.55, 0.9]));
+    const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
+    const imgData = ctx2d.getImageData(0, 0, width, height);
+    const data = imgData.data;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idxBase = ((height - 1 - y) * width + x) * 4;
+            const z = ldzData[(y * width + x) * 4 + 3];
+            if (z < 0.0) {
+                const labBg = mix(labBg1, labBg2, Math.pow(0.15 * x / (width-1) + 0.85 * y / (height-1), 1.5));
+                const rgbBg = linearToSrgb(oklabToLinear(labBg));
+                data[idxBase] = Math.round(rgbBg[0] * 255);
+                data[idxBase + 1] = Math.round(rgbBg[1] * 255);
+                data[idxBase + 2] = Math.round(rgbBg[2] * 255);
+            } else {
+                data[idxBase] = Math.round(0.95 * 255);
+                data[idxBase + 1] = Math.round(0.92 * 255);
+                data[idxBase + 2] = Math.round(0.8 * 255);
+            }
+            data[idxBase + 3] = 255;
+        }
+    }
+    ctx2d.putImageData(imgData, 0, 0);
 
     for (const line of streamlines) {
         drawPolyline(ctx2d, line);

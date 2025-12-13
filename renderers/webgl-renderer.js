@@ -3,7 +3,7 @@ import { compileShader, createProgram } from '../webgl-utils/shader-utils.js';
 import { vertexShader } from '../shaders/vertex.js';
 import { fragmentSampleLdzShader } from '../shaders/sample-ldz.js';
 import { fragmentVisualizeShader } from '../shaders/visualize.js';
-import { fragmentShader } from '../shaders/fragment/shell.js';
+import { fragmentShader } from '../shaders/fragment/hull.js';
 
 
 export class WebGLRenderer {
