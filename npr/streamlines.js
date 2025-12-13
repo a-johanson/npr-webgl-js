@@ -10,13 +10,21 @@ function dSepFromLuminance(dSepMax, dSepShadowFactor, gammaLuminance, luminance)
     return dSepMin + (dSepMax - dSepMin) * Math.pow(luminance, gammaLuminance);
 }
 
-function getLdzValue(ldzData, width, height, x, y) {
+function getLdzValue(ldzData, width, height, x, y, orientationOffset = 0.0) {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
     if (ix < 0 || ix >= width || iy < 0 || iy >= height) return undefined;
     const idx = (iy * width + ix) * 4;
     const luminance = ldzData[idx];
     const direction = [ldzData[idx + 1], ldzData[idx + 2]];
+    if (orientationOffset !== 0.0) {
+        const cosOo = Math.cos(orientationOffset);
+        const sinOo = Math.sin(orientationOffset);
+        const dirX = direction[0] * cosOo - direction[1] * sinOo;
+        const dirY = direction[0] * sinOo + direction[1] * cosOo;
+        direction[0] = dirX;
+        direction[1] = dirY;
+    }
     const depth = ldzData[idx + 3];
     return { luminance, direction, depth };
 }
@@ -40,10 +48,11 @@ function flowFieldStreamline(
         maxAccumAngle = Math.PI * 0.6,
         maxHatchedLuminance = 1.0,
         maxSteps = 200,
-        minSteps = 10
+        minSteps = 10,
+        orientationOffset = 0.0
     } = config;
 
-    const ldzStart = getLdzValue(ldzData, width, height, pStart[0], pStart[1]);
+    const ldzStart = getLdzValue(ldzData, width, height, pStart[0], pStart[1], orientationOffset);
     if (!ldzStart || ldzStart.depth < 0.0 || ldzStart.luminance > maxHatchedLuminance) {
         return null;
     }
@@ -65,7 +74,7 @@ function flowFieldStreamline(
                 lpLast[0] + nextDir[0] * step,
                 lpLast[1] + nextDir[1] * step
             ];
-            const ldz = getLdzValue(ldzData, width, height, pNew[0], pNew[1]);
+            const ldz = getLdzValue(ldzData, width, height, pNew[0], pNew[1], orientationOffset);
             if (!ldz) break;
 
             const newDir = ldz.direction;
@@ -107,7 +116,8 @@ export function flowFieldStreamlines(
     const {
         dSepMax = 1.0,
         dSepShadowFactor = 0.5,
-        gammaLuminance = 1.5
+        gammaLuminance = 1.5,
+        orientationOffset = 0.0
     } = config;
 
     let rng = prng_xor4096(rngSeed);
@@ -142,7 +152,7 @@ export function flowFieldStreamlines(
     while (queue.length > 0) {
         const { sid, line } = queue.shift();
         for (const lp of line) {
-            const ldz = getLdzValue(ldzData, width, height, lp[0], lp[1]);
+            const ldz = getLdzValue(ldzData, width, height, lp[0], lp[1], orientationOffset);
             const dSep = dSepFromLuminance(dSepMax, dSepShadowFactor, gammaLuminance, ldz.luminance);
             for (const sign of [-1.0, 1.0]) {
                 const newSeed = [
@@ -169,20 +179,24 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
 
     const config = {
         dSepMax: 0.9 * pixelsPerMm,
-        dSepShadowFactor: 0.1,
-        gammaLuminance: 2.5,
+        dSepShadowFactor: 0.2,
+        gammaLuminance: 2.0,
         dTestFactor: 1.1,
-        dStep: 0.05 * pixelsPerMm,
+        dStep: 0.1 * pixelsPerMm,
         maxDepthStep: 0.02,
         maxAccumAngle: Math.PI * 0.6,
         maxHatchedLuminance: 1.9,
         maxSteps: 750,
-        minSteps: 10
+        minSteps: 10,
+        orientationOffset: 0.0
     };
 
-    let streamlines = flowFieldStreamlines(ldzData, width, height, seed, config);
-    streamlines = streamlines.map(line => visvalingamWhyatt(line, 0.25));
-    const outlines = outlinesFromLDZ(ldzData, width, height, 0.7, 0.3, 25, 0.25);
+    const maxAreaDeviation = 0.25;
+    const streamlines = flowFieldStreamlines(ldzData, width, height, seed, config).map(line => visvalingamWhyatt(line, maxAreaDeviation));
+    config.orientationOffset = Math.PI / 180.0 * 30.0;
+    config.maxHatchedLuminance = 0.25;
+    const crosslines = flowFieldStreamlines(ldzData, width, height, seed + 'cross', config).map(line => visvalingamWhyatt(line, maxAreaDeviation));
+    const outlines = outlinesFromLDZ(ldzData, width, height, { maxAreaDeviation });
 
     // ctx2d.fillStyle = '#fff';
     // ctx2d.fillRect(0, 0, width, height);
@@ -195,7 +209,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
         t = Math.min(Math.max(t, 0.0), 1.0);
         return a.map((av, i) => av * (1.0 - t) + b[i] * t);
     }
-    const labBg1 = linearToOklab(srgbToLinear([0.35, 0.55, 0.9]));
+    const labBg1 = linearToOklab(srgbToLinear([0.2, 0.65, 0.9]));
     const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
     const imgData = ctx2d.getImageData(0, 0, width, height);
     const data = imgData.data;
@@ -210,15 +224,18 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
                 data[idxBase + 1] = Math.round(rgbBg[1] * 255);
                 data[idxBase + 2] = Math.round(rgbBg[2] * 255);
             } else {
-                data[idxBase] = Math.round(0.95 * 255);
-                data[idxBase + 1] = Math.round(0.92 * 255);
-                data[idxBase + 2] = Math.round(0.8 * 255);
+                data[idxBase] = Math.round(0.98 * 255);
+                data[idxBase + 1] = Math.round(0.95 * 255);
+                data[idxBase + 2] = Math.round(0.85 * 255);
             }
             data[idxBase + 3] = 255;
         }
     }
     ctx2d.putImageData(imgData, 0, 0);
 
+    for (const line of crosslines) {
+        drawPolyline(ctx2d, line);
+    }
     for (const line of streamlines) {
         drawPolyline(ctx2d, line);
     }
