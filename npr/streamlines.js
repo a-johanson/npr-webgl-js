@@ -117,7 +117,8 @@ export function flowFieldStreamlines(
         dSepMax = 1.0,
         dSepShadowFactor = 0.5,
         gammaLuminance = 1.5,
-        orientationOffset = 0.0
+        orientationOffset = 0.0,
+        maxAreaDeviation = 0.25
     } = config;
 
     let rng = prng_xor4096(rngSeed);
@@ -143,7 +144,7 @@ export function flowFieldStreamlines(
                 streamlineIdCounter += 1;
                 sl.forEach(p => grid.addPoint(p[0], p[1], sid));
                 queue.push({ sid, line: sl });
-                streamlines.push(sl);
+                streamlines.push(visvalingamWhyatt(sl, maxAreaDeviation));
             }
         }
     }
@@ -165,7 +166,7 @@ export function flowFieldStreamlines(
                     streamlineIdCounter += 1;
                     newSl.forEach(p => grid.addPoint(p[0], p[1], newSid));
                     queue.push({ sid: newSid, line: newSl });
-                    streamlines.push(newSl);
+                    streamlines.push(visvalingamWhyatt(newSl, maxAreaDeviation));
                 }
             }
         }
@@ -188,15 +189,15 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
         maxHatchedLuminance: 1.9,
         maxSteps: 750,
         minSteps: 10,
-        orientationOffset: 0.0
+        orientationOffset: 0.0,
+        maxAreaDeviation: 0.25
     };
 
-    const maxAreaDeviation = 0.25;
-    const streamlines = flowFieldStreamlines(ldzData, width, height, seed, config).map(line => visvalingamWhyatt(line, maxAreaDeviation));
+    const streamlines = flowFieldStreamlines(ldzData, width, height, seed, config);
     config.orientationOffset = Math.PI / 180.0 * 30.0;
     config.maxHatchedLuminance = 0.25;
-    const crosslines = flowFieldStreamlines(ldzData, width, height, seed + 'cross', config).map(line => visvalingamWhyatt(line, maxAreaDeviation));
-    const outlines = outlinesFromLDZ(ldzData, width, height, { maxAreaDeviation });
+    const crosslines = flowFieldStreamlines(ldzData, width, height, seed + 'cross', config);
+    const outlines = outlinesFromLDZ(ldzData, width, height, { maxAreaDeviation: config.maxAreaDeviation });
 
     // ctx2d.fillStyle = '#fff';
     // ctx2d.fillRect(0, 0, width, height);
