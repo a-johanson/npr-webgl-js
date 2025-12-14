@@ -1,12 +1,12 @@
 import { MinHeap } from './heap.js';
 
 
-export function drawPolyline(ctx2d, points) {
+export function drawPolyline(ctx2d, points, xOffset = 0.5, yOffset = 0.5) {
     if (points.length === 0) return;
     ctx2d.beginPath();
-    ctx2d.moveTo(points[0][0], points[0][1]);
+    ctx2d.moveTo(points[0][0] + xOffset, points[0][1] + yOffset);
     for (let i = 1; i < points.length; i++) {
-        ctx2d.lineTo(points[i][0], points[i][1]);
+        ctx2d.lineTo(points[i][0] + xOffset, points[i][1] + yOffset);
     }
     ctx2d.stroke();
 }
