@@ -212,6 +212,9 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     }
     const labBg1 = linearToOklab(srgbToLinear([0.2, 0.65, 0.9]));
     const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
+    const rFill = Math.round(0.98 * 255);
+    const gFill = Math.round(0.95 * 255);
+    const bFill = Math.round(0.85 * 255);
     const imgData = ctx2d.getImageData(0, 0, width, height);
     const data = imgData.data;
     for (let y = 0; y < height; y++) {
@@ -225,9 +228,9 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
                 data[idxBase + 1] = Math.round(rgbBg[1] * 255);
                 data[idxBase + 2] = Math.round(rgbBg[2] * 255);
             } else {
-                data[idxBase] = Math.round(0.98 * 255);
-                data[idxBase + 1] = Math.round(0.95 * 255);
-                data[idxBase + 2] = Math.round(0.85 * 255);
+                data[idxBase] = rFill;
+                data[idxBase + 1] = gFill;
+                data[idxBase + 2] = bFill;
             }
             data[idxBase + 3] = 255;
         }
