@@ -58,15 +58,8 @@ function convolve2D(src, offset, stride, width, height, kernel, kSize, kRadius) 
 }
 
 function marchingSquaresZeroCrossing(lap, width, height, threshold = 1e-3) {
-    function robustSign(v) {
-        if (v > threshold) return 1;
-        if (v < -threshold) return -1;
-        return 0;
-    }
-
-    function edgeHasZeroCrossingFromSigns(sa, sb) {
-        if (sa * sb < 0) return true;
-        return false;
+    function edgeHasZeroCrossing(v1, v2) {
+        return v1 * v2 < 0.0 && Math.abs(v1 - v2) > threshold;
     }
 
     function interpolateZeroCrossing(v1, v2, x1, y1, x2, y2) {
@@ -86,38 +79,43 @@ function marchingSquaresZeroCrossing(lap, width, height, threshold = 1e-3) {
             const c = lap[(y + 1) * width + x];         // bottom-left
             const d = lap[(y + 1) * width + (x + 1)];   // bottom-right
 
-            const sa = robustSign(a);
-            const sb = robustSign(b);
-            const sc = robustSign(c);
-            const sd = robustSign(d);
-
             const pts = [];
             // Edge order: top, right, bottom, left.
 
             // Top edge: a -> b
-            if (edgeHasZeroCrossingFromSigns(sa, sb)) {
+            if (edgeHasZeroCrossing(a, b)) {
                 pts.push(interpolateZeroCrossing(a, b, x, y, x + 1, y));
             }
 
             // Right edge: b -> d
-            if (edgeHasZeroCrossingFromSigns(sb, sd)) {
+            if (edgeHasZeroCrossing(b, d)) {
                 pts.push(interpolateZeroCrossing(b, d, x + 1, y, x + 1, y + 1));
             }
 
             // Bottom edge: c -> d
-            if (edgeHasZeroCrossingFromSigns(sc, sd)) {
+            if (edgeHasZeroCrossing(c, d)) {
                 pts.push(interpolateZeroCrossing(c, d, x, y + 1, x + 1, y + 1));
             }
 
             // Left edge: a -> c
-            if (edgeHasZeroCrossingFromSigns(sa, sc)) {
+            if (edgeHasZeroCrossing(a, c)) {
                 pts.push(interpolateZeroCrossing(a, c, x, y, x, y + 1));
             }
 
             if (pts.length === 2) {
                 segments.push(pts);
             } else if (pts.length === 4) {
-                console.log("Ignoring ambiguous cell in marching squares");
+                // Asymptotic decider for ambiguous (saddle) cases.
+                const s = a * d - b * c;
+                if (s > 0) { // dominant a <-> d diagonal
+                    // Connect top-right and bottom-left: [top,right], [bottom,left]
+                    segments.push([pts[0], pts[1]]);
+                    segments.push([pts[2], pts[3]]);
+                } else { // consistently include s == 0 in this case
+                    // Connect top-left and bottom-right: [top,left], [bottom,right]
+                    segments.push([pts[0], pts[3]]);
+                    segments.push([pts[2], pts[1]]);
+                }
             }
         }
     }
@@ -131,7 +129,7 @@ export function outlinesFromLDZ(
     height,
     {
         logSigma = 0.7,
-        marchingSquaresThreshold = 0.3,
+        marchingSquaresThreshold = 0.6,
         minSegmentCount = 25,
         curvatureWindow = 10,
         minAngleDeg = 15.0,
