@@ -121,7 +121,7 @@ export function flowFieldStreamlines(
         maxAreaDeviation = 0.25
     } = config;
 
-    let rng = prng_xor4096(rngSeed);
+    const rng = prng_xor4096(rngSeed);
     const grid = new SpatialGrid(dSepMax);
     const queue = [];
     const streamlines = [];
@@ -179,11 +179,11 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const pixelsPerMm = dpi / 25.4;
 
     const config = {
-        dSepMax: 0.9 * pixelsPerMm,
+        dSepMax: 2.7 * pixelsPerMm,
         dSepShadowFactor: 0.2,
         gammaLuminance: 2.0,
         dTestFactor: 1.1,
-        dStep: 0.1 * pixelsPerMm,
+        dStep: 0.3 * pixelsPerMm,
         maxDepthStep: 0.02,
         maxAccumAngle: Math.PI * 0.6,
         maxHatchedLuminance: 1.9,
@@ -202,7 +202,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     // ctx2d.fillStyle = '#fff';
     // ctx2d.fillRect(0, 0, width, height);
     ctx2d.strokeStyle = '#111';
-    ctx2d.lineWidth = 0.06 * pixelsPerMm;
+    ctx2d.lineWidth = 0.18 * pixelsPerMm;
     ctx2d.lineCap = 'round';
     ctx2d.lineJoin = 'round';
 
@@ -210,12 +210,16 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
         t = Math.min(Math.max(t, 0.0), 1.0);
         return a.map((av, i) => av * (1.0 - t) + b[i] * t);
     }
+    function clamp01(v) {
+        return Math.min(Math.max(v, 0.0), 1.0);
+    }
     const labBg1 = linearToOklab(srgbToLinear([0.2, 0.65, 0.9]));
     const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
     const rFill = Math.round(0.98 * 255);
     const gFill = Math.round(0.95 * 255);
     const bFill = Math.round(0.85 * 255);
-    const imgData = ctx2d.getImageData(0, 0, width, height);
+    const rng = prng_xor4096(seed + 'dithering');
+    const imgData = ctx2d.createImageData(width, height, { colorSpace: 'srgb' });
     const data = imgData.data;
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -224,9 +228,12 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
             if (z < 0.0) {
                 const labBg = mix(labBg1, labBg2, Math.pow(0.15 * x / (width-1) + 0.85 * y / (height-1), 1.5));
                 const rgbBg = linearToSrgb(oklabToLinear(labBg));
-                data[idxBase] = Math.round(rgbBg[0] * 255);
-                data[idxBase + 1] = Math.round(rgbBg[1] * 255);
-                data[idxBase + 2] = Math.round(rgbBg[2] * 255);
+                const rb = clamp01(rgbBg[0] + (0.8 / 255.0) * (rng() + rng() - 1.0));
+                const gb = clamp01(rgbBg[1] + (0.8 / 255.0) * (rng() + rng() - 1.0));
+                const bb = clamp01(rgbBg[2] + (0.8 / 255.0) * (rng() + rng() - 1.0));
+                data[idxBase] = Math.round(rb * 255);
+                data[idxBase + 1] = Math.round(gb * 255);
+                data[idxBase + 2] = Math.round(bb * 255);
             } else {
                 data[idxBase] = rFill;
                 data[idxBase + 1] = gFill;

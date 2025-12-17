@@ -7,7 +7,11 @@ export class NprRenderer {
         this.stateManager = stateManager;
 
         this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { 
+            alpha: false,
+            colorSpace: 'srgb',
+            willReadFrequently: false
+        });
 
         this.adaptToDimensions();
 
