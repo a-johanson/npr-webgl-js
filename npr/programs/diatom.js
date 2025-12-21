@@ -41,11 +41,11 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     function clamp01(v) {
         return Math.min(Math.max(v, 0.0), 1.0);
     }
-    const labBg1 = linearToOklab(srgbToLinear([0.2, 0.65, 0.9]));
+    const labBg1 = linearToOklab(srgbToLinear([0.0, 0.7, 0.95]));
     const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
-    const rFill = Math.round(0.98 * 255);
-    const gFill = Math.round(0.95 * 255);
-    const bFill = Math.round(0.85 * 255);
+    const rFill = 255;
+    const gFill = Math.round(0.969388 * 255);
+    const bFill = Math.round(0.867347 * 255);
     const rng = prng_xor4096(seed + 'dithering');
     const imgData = ctx2d.createImageData(width, height, { colorSpace: 'srgb' });
     const data = imgData.data;
