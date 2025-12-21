@@ -167,7 +167,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     ctx2d.lineJoin = 'round';
 
     outlines.forEach(outline => {
-        drawPolyline(ctx2d, outline);
-        drawPolylinePoints(ctx2d, outline, 2.0);
+        drawPolyline(ctx2d, outline, [0.5, 0.5]);
+        drawPolylinePoints(ctx2d, outline, 2.0, [0.5, 0.5]);
     });
 }

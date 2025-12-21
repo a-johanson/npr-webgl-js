@@ -251,6 +251,6 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
         drawPolyline(ctx2d, line);
     }
     for (const line of outlines) {
-        drawPolyline(ctx2d, line);
+        drawPolyline(ctx2d, line, [0.5, 0.5]);
     }
 }

@@ -1,8 +1,9 @@
 import { MinHeap } from './heap.js';
 
 
-export function drawPolyline(ctx2d, points, xOffset = 0.5, yOffset = 0.5) {
+export function drawPolyline(ctx2d, points, offset = [0.0, 0.0]) {
     if (points.length === 0) return;
+    const [xOffset, yOffset] = offset;
     ctx2d.beginPath();
     ctx2d.moveTo(points[0][0] + xOffset, points[0][1] + yOffset);
     for (let i = 1; i < points.length; i++) {
@@ -11,14 +12,15 @@ export function drawPolyline(ctx2d, points, xOffset = 0.5, yOffset = 0.5) {
     ctx2d.stroke();
 }
 
-export function drawPolylinePoints(ctx2d, points, radius = 2.0, values = null) {
+export function drawPolylinePoints(ctx2d, points, radius = 2.0, offset = [0.0, 0.0], values = null) {
+    const [xOffset, yOffset] = offset;
     for (let i = 0; i < points.length; i++) {
         if (values) {
             const hue = Math.floor(240 - 240 * Math.max(0.0, Math.min(1.0, values[i])));
             ctx2d.fillStyle = `hsl(${hue}, 100%, 50%)`;
         }
         ctx2d.beginPath();
-        ctx2d.arc(points[i][0], points[i][1], radius, 0, 2 * Math.PI);
+        ctx2d.arc(points[i][0] + xOffset, points[i][1] + yOffset, radius, 0, 2 * Math.PI);
         ctx2d.fill();
     }
 }
