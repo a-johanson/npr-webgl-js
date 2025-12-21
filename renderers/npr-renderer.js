@@ -1,4 +1,4 @@
-import { renderFromLDZ } from '../npr/streamlines.js';
+import { renderFromLDZ } from '../npr/programs/diatom.js';
 
 
 export class NprRenderer {

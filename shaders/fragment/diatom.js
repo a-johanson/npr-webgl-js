@@ -76,7 +76,7 @@ float scene(vec3 p) {
         float sphere = sd_sphere(p - objPos, OBJ_RADIUS * (1.0 + pow(rand(i), 2.0) * 0.05));
         fib_sphere = smin(fib_sphere, sphere, 0.0035);
     }
-    
+
     float core = max(sd_sphere(p, 1.0), -fib_sphere);
     float cutout = sd_sphere(p, 1.025 - OBJ_RADIUS);
     float hull = max(core, -cutout);
