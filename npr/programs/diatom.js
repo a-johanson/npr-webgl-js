@@ -42,10 +42,10 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
         return Math.min(Math.max(v, 0.0), 1.0);
     }
     const labBg1 = linearToOklab(srgbToLinear([0.0, 0.7, 0.95]));
-    const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.25]));
-    const rFill = 255;
-    const gFill = Math.round(0.969388 * 255);
-    const bFill = Math.round(0.867347 * 255);
+    const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.24]));
+    const rFill = Math.round(0.98 * 255);
+    const gFill = Math.round(0.95 * 255);
+    const bFill = Math.round(0.85 * 255);
     const rng = prng_xor4096(seed + 'dithering');
     const imgData = ctx2d.createImageData(width, height, { colorSpace: 'srgb' });
     const data = imgData.data;
@@ -54,11 +54,11 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
             const idxBase = ((height - 1 - y) * width + x) * 4;
             const z = ldzData[(y * width + x) * 4 + 3];
             if (z < 0.0) {
-                const labBg = mix(labBg1, labBg2, Math.pow(0.15 * x / (width-1) + 0.85 * y / (height-1), 1.5));
+                const labBg = mix(labBg1, labBg2, Math.pow(0.1 * x / (width-1) + 0.9 * y / (height-1), 1.3));
                 const rgbBg = linearToSrgb(oklabToLinear(labBg));
-                const rb = clamp01(rgbBg[0] + (0.8 / 255.0) * (rng() + rng() - 1.0));
-                const gb = clamp01(rgbBg[1] + (0.8 / 255.0) * (rng() + rng() - 1.0));
-                const bb = clamp01(rgbBg[2] + (0.8 / 255.0) * (rng() + rng() - 1.0));
+                const rb = clamp01(rgbBg[0] + (0.9 / 255.0) * (rng() + rng() - 1.0));
+                const gb = clamp01(rgbBg[1] + (0.9 / 255.0) * (rng() + rng() - 1.0));
+                const bb = clamp01(rgbBg[2] + (0.9 / 255.0) * (rng() + rng() - 1.0));
                 data[idxBase] = Math.round(rb * 255);
                 data[idxBase + 1] = Math.round(gb * 255);
                 data[idxBase + 2] = Math.round(bb * 255);
