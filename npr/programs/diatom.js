@@ -25,7 +25,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
 
     const streamlines = flowFieldStreamlines(ldzData, width, height, seed, config);
     config.orientationOffset = Math.PI / 180.0 * 30.0;
-    config.maxHatchedLuminance = 0.25;
+    config.maxHatchedLuminance = 0.2475;
     const crosslines = flowFieldStreamlines(ldzData, width, height, seed + 'cross', config);
     const outlines = outlinesFromLDZ(ldzData, width, height, { maxAreaDeviation: config.maxAreaDeviation });
 
@@ -44,7 +44,7 @@ export function renderFromLDZ(ctx2d, ldzData, width, height, dpi, seed) {
     const labBg1 = linearToOklab(srgbToLinear([0.0, 0.7, 0.95]));
     const labBg2 = linearToOklab(srgbToLinear([0.0, 0.0, 0.24]));
     const rFill = Math.round(0.99 * 255);
-    const gFill = Math.round(0.94 * 255);
+    const gFill = Math.round(0.95 * 255);
     const bFill = Math.round(0.85 * 255);
     const rng = prng_xor4096(seed + 'dithering');
     const imgData = ctx2d.createImageData(width, height, { colorSpace: 'srgb' });
